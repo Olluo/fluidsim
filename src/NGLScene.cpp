@@ -50,7 +50,7 @@ void NGLScene::initializeGL()
   // Now we will create a basic Camera from the graphics library
   // This is a static camera so it only needs to be set once
   // First create Values for the camera position
-  ngl::Vec3 from(static_cast<float>(m_gridSize - 1) / 2.0f, m_gridSize + 26, static_cast<float>(m_gridSize - 1) / 2.0f);
+  ngl::Vec3 from(static_cast<float>(m_gridSize - 1) / 2.0f, m_gridSize + 2, static_cast<float>(m_gridSize - 1) / 2.0f);
   ngl::Vec3 to(static_cast<float>(m_gridSize - 1) / 2.0f, 0, static_cast<float>(m_gridSize - 1) / 2.0f);
   ngl::Vec3 up(0, 0, 1);
 

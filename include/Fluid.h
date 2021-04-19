@@ -72,9 +72,15 @@ private:
 
     void set_bnd(int _b, std::vector<float> *_x);
 
+    void set_bnd(std::vector<ngl::Vec2> *_v);
+
     void lin_solve(int b, std::vector<float> *_x, std::vector<float> *_x0, float _a, float _c);
 
+    void lin_solve(std::vector<ngl::Vec2> *_v, std::vector<ngl::Vec2> *_v0, float _a, float _c);
+
     void diffuse(int _b, std::vector<float> *_x, std::vector<float> *_x0);
+
+    void diffuse();
 
     void advect(int _b, std::vector<float> *_d, std::vector<float> *_d0, std::vector<float> *_velocX, std::vector<float> *_velocY);
 

@@ -59,11 +59,13 @@ void Fluid::step()
     std::vector<float> Vx0;
     std::vector<float> Vy0;
 
+    diffuse();
+
     splitter(m_v, &Vx, &Vy);
     splitter(m_v0, &Vx0, &Vy0);
 
-    diffuse(1, &Vx0, &Vx);
-    diffuse(2, &Vy0, &Vy);
+    // diffuse(1, &Vx0, &Vx);
+    // diffuse(2, &Vy0, &Vy);
 
     project(&Vx0, &Vy0, &Vx, &Vy);
 
@@ -71,9 +73,6 @@ void Fluid::step()
     advect(2, &Vy, &Vy0, &Vx0, &Vy0);
 
     project(&Vx, &Vy, &Vx0, &Vy0);
-
-    // diffuse(0, &m_s, &m_density, m_diff, m_dt);
-    // advect(0, &m_density, &m_s, &Vx, &Vy, m_dt);
 
     updateParticles();
 
@@ -119,6 +118,29 @@ void Fluid::set_bnd(int _b, std::vector<float> *_x)
     _x->at(IX(m_size - 1, m_size - 1)) = 0.5f * (_x->at(IX(m_size - 2, m_size - 1)) + _x->at(IX(m_size - 1, m_size - 2)));
 }
 
+void Fluid::set_bnd(std::vector<ngl::Vec2> *_v)
+{
+    // set top and bottom rows to reflect in y
+    for (int i = 1; i < m_size - 1; i++)
+    {
+        _v->at(IX(i, 0)).m_y = -_v->at(IX(i, 1)).m_y;
+        _v->at(IX(i, m_size - 1)).m_y = -_v->at(IX(i, m_size - 2)).m_y;
+    }
+
+    // set left and right columns to reflect in x
+    for (int j = 1; j < m_size - 1; j++)
+    {
+        _v->at(IX(0, j)).m_x = -_v->at(IX(1, j)).m_x;
+        _v->at(IX(m_size - 1, j)).m_x = -_v->at(IX(m_size - 2, j)).m_x;
+    }
+
+    // set corners to reflect inwards
+    _v->at(IX(0, 0)) = 0.5f * (_v->at(IX(1, 0)) + _v->at(IX(0, 1)));
+    _v->at(IX(0, m_size - 1)) = 0.5f * (_v->at(IX(1, m_size - 1)) + _v->at(IX(0, m_size - 2)));
+    _v->at(IX(m_size - 1, 0)) = 0.5f * (_v->at(IX(m_size - 2, 0)) + _v->at(IX(m_size - 1, 1)));
+    _v->at(IX(m_size - 1, m_size - 1)) = 0.5f * (_v->at(IX(m_size - 2, m_size - 1)) + _v->at(IX(m_size - 1, m_size - 2)));
+}
+
 void Fluid::lin_solve(int _b, std::vector<float> *_x, std::vector<float> *_x0, float _a, float _c)
 {
     float cRecip = 1.0f / _c;
@@ -137,10 +159,34 @@ void Fluid::lin_solve(int _b, std::vector<float> *_x, std::vector<float> *_x0, f
     }
 }
 
+void Fluid::lin_solve(std::vector<ngl::Vec2> *_v, std::vector<ngl::Vec2> *_v0, float _a, float _c)
+{
+    float cRecip = 1.0f / _c;
+    for (int k = 0; k < iter; k++)
+    {
+        for (int j = 1; j < m_size - 1; j++)
+        {
+            for (int i = 1; i < m_size - 1; i++)
+            {
+                _v->at(IX(i, j)) =
+                    (_v0->at(IX(i, j)) + _a * (_v->at(IX(i + 1, j)) + _v->at(IX(i - 1, j)) + _v->at(IX(i, j + 1)) + _v->at(IX(i, j - 1)))) * cRecip;
+            }
+        }
+
+        set_bnd(_v);
+    }
+}
+
 void Fluid::diffuse(int _b, std::vector<float> *_x, std::vector<float> *_x0)
 {
     float a = m_dt * m_visc * (m_size - 2) * (m_size - 2);
     lin_solve(_b, _x, _x0, a, 1 + 4 * a);
+}
+
+void Fluid::diffuse()
+{
+    float a = m_dt * m_visc * (m_size - 2) * (m_size - 2);
+    lin_solve(&m_v0, &m_v, a, 1 + 4 * a);
 }
 
 void Fluid::advect(int _b, std::vector<float> *_d, std::vector<float> *_d0, std::vector<float> *_velocX, std::vector<float> *_velocY)

@@ -90,10 +90,11 @@ target_sources(
   PRIVATE ${PROJECT_SOURCE_DIR}/src/main.cpp
           ${CMAKE_SOURCE_DIR}/src/NGLScene.cpp
           ${CMAKE_SOURCE_DIR}/include/NGLScene.h
-          ${CMAKE_SOURCE_DIR}/shaders/PosDirVertex.glsl
-          ${CMAKE_SOURCE_DIR}/shaders/PosDirFragment.glsl
-          ${CMAKE_SOURCE_DIR}/shaders/PosDirFragment.glsl
-          ${CMAKE_SOURCE_DIR}/shaders/PosDirGeo.glsl
+          # ${CMAKE_SOURCE_DIR}/shaders/PosDirVertex.glsl
+          # ${CMAKE_SOURCE_DIR}/shaders/PosDirFragment.glsl
+          # ${CMAKE_SOURCE_DIR}/shaders/PosDirGeo.glsl
+          ${CMAKE_SOURCE_DIR}/shaders/VertexShader.glsl
+          ${CMAKE_SOURCE_DIR}/shaders/FragmentShader.glsl
           )
 
 # Libraries needed for the executable, our library at the top

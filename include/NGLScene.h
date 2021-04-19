@@ -30,7 +30,7 @@ public:
   /// @brief ctor for our NGL drawing class
   /// @param [in] parent the parent window to the class
   //----------------------------------------------------------------------------------------------------------------------
-  NGLScene(uint32_t _w, uint32_t _h, uint32_t _numParticles);
+  NGLScene(uint32_t _size);
   //----------------------------------------------------------------------------------------------------------------------
   /// @brief dtor must close down ngl and release OpenGL resources
   //----------------------------------------------------------------------------------------------------------------------
@@ -102,9 +102,7 @@ private:
   void wheelEvent(QWheelEvent *_event) override;
   void timerEvent(QTimerEvent *) override;
   std::unique_ptr<Fluid> m_fluid;
-  uint32_t m_gridWidth;
-  uint32_t m_gridHeight;
-  uint32_t m_numParticles;
+  uint32_t m_gridSize;
   //----------------------------------------------------------------------------------------------------------------------
   /// @brief text renderer
   //----------------------------------------------------------------------------------------------------------------------

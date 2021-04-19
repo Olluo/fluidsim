@@ -14,12 +14,10 @@
 
 constexpr size_t c_sampleSize = 500;
 
-NGLScene::NGLScene(uint32_t _w, uint32_t _h, uint32_t _numParticles)
+NGLScene::NGLScene(uint32_t _size)
 {
   setTitle("Simple Grid Particle System SOA");
-  m_gridWidth = _w;
-  m_gridHeight = _h;
-  m_numParticles = _numParticles;
+  m_gridSize = _size;
   // we need to add an initial value to the rolling average to make code simpler
   m_updateTime.push_back(1);
 }
@@ -52,9 +50,8 @@ void NGLScene::initializeGL()
   // Now we will create a basic Camera from the graphics library
   // This is a static camera so it only needs to be set once
   // First create Values for the camera position
-  float offset = (m_gridWidth > m_gridHeight) ? m_gridWidth : m_gridHeight;
-  ngl::Vec3 from(0, offset + 2, 0);
-  ngl::Vec3 to(0, 0, 0);
+  ngl::Vec3 from(static_cast<float>(m_gridSize - 1) / 2.0f, m_gridSize + 26, static_cast<float>(m_gridSize - 1) / 2.0f);
+  ngl::Vec3 to(static_cast<float>(m_gridSize - 1) / 2.0f, 0, static_cast<float>(m_gridSize - 1) / 2.0f);
   ngl::Vec3 up(0, 0, 1);
 
   m_view = ngl::lookAt(from, to, up);
@@ -64,12 +61,15 @@ void NGLScene::initializeGL()
 
   // now to load the shader and set the values
   // grab an instance of shader manager
-  ngl::ShaderLib::loadShader("PosDir", "shaders/PosDirVertex.glsl", "shaders/PosDirFragment.glsl", "shaders/PosDirGeo.glsl");
-  ngl::ShaderLib::use("PosDir");
+  // ngl::ShaderLib::loadShader("PosDir", "shaders/PosDirVertex.glsl", "shaders/PosDirFragment.glsl", "shaders/PosDirGeo.glsl");
+  ngl::ShaderLib::use("nglColourShader");
+  // ngl::ShaderLib::use("PosDir");
   ngl::ShaderLib::setUniform("Colour", 1.0f, 1.0f, 1.0f, 1.0f);
   glViewport(0, 0, width(), height());
-  m_fluid = std::make_unique<Fluid>(m_gridWidth, m_gridHeight, m_numParticles, 0.2f, 0.0f, 0.0000001f);
-  ngl::VAOPrimitives::createLineGrid("lineGrid", m_gridWidth, m_gridHeight, 2);
+  m_fluid = std::make_unique<Fluid>(m_gridSize, 0.2f, 0.0f, 0.0000001f);
+  m_fluid->step();
+  // m_fluid->addVelocity(m_gridSize / 2.0f, m_gridSize / 2.0f, 5, 0);
+  ngl::VAOPrimitives::createLineGrid("lineGrid", m_gridSize, m_gridSize, 1);
   ngl::ShaderLib::use(ngl::nglColourShader);
   ngl::ShaderLib::setUniform("Colour", 1.0f, 1.0f, 1.0f, 1.0f);
   m_text = std::make_unique<ngl::Text>("fonts/Arial.ttf", 18);
@@ -97,28 +97,30 @@ void NGLScene::paintGL()
   //  m_mouseGlobalTX.m_m[3][0] = m_modelPos.m_x;
   m_mouseGlobalTX.m_m[3][1] = m_modelPos.m_z;
   //  m_mouseGlobalTX.m_m[3][2] = m_modelPos.m_z;
-  ngl::ShaderLib::use("PosDir");
+  // ngl::ShaderLib::use("PosDir");
+  ngl::ShaderLib::use("nglColourShader");
   ngl::Mat4 MVP;
   MVP = m_project * m_view * m_mouseGlobalTX;
 
   ngl::ShaderLib::setUniform("MVP", MVP);
-  glPointSize(20);
+  glPointSize(1);
 
   auto drawbegin = std::chrono::steady_clock::now();
 
+  m_fluid->step();
   m_fluid->draw();
   auto drawend = std::chrono::steady_clock::now();
 
   std::string text = fmt::format("Draw took {0} uS", std::chrono::duration_cast<std::chrono::microseconds>(drawend - drawbegin).count());
-  m_text->renderText(10, 680, text);
+  m_text->renderText(10, 30, text);
 
   auto updateTime = std::accumulate(std::begin(m_updateTime), std::end(m_updateTime), 0) / m_updateTime.size();
   text = fmt::format("Update took {0} uS for {1} particles", updateTime, m_fluid->getNumParticles());
-  m_text->renderText(10, 660, text);
+  m_text->renderText(10, 10, text);
 
   ngl::ShaderLib::use(ngl::nglColourShader);
   ngl::ShaderLib::setUniform("MVP", MVP);
-  ngl::VAOPrimitives::draw("lineGrid");
+  // ngl::VAOPrimitives::draw("lineGrid");
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -129,10 +131,20 @@ void NGLScene::mouseMoveEvent(QMouseEvent *_event)
   // pressed when the mousePress/Release event is generated
   if (m_win.rotate && _event->buttons() == Qt::LeftButton)
   {
-    int diffx = _event->x() - m_win.origX;
-    int diffy = _event->y() - m_win.origY;
-    m_win.spinXFace += static_cast<int>(0.5f * diffy);
-    m_win.spinYFace += static_cast<int>(0.5f * diffx);
+    float scale = 0.5f;
+    int ex = _event->x();
+    int ey = _event->y();
+    int dx = static_cast<int>(scale * (ex - m_win.origX));
+    int dy = -static_cast<int>(scale * (ey - m_win.origY));
+    int x = m_gridSize - static_cast<int>(static_cast<float>(m_win.origX) / m_win.width * m_gridSize);
+    int y = m_gridSize - static_cast<int>(static_cast<float>(m_win.origY) / m_win.height * m_gridSize);
+    std::cout << "==============\n";
+    std::cout << "XY  = (" << m_win.origX << ", " << m_win.origY << ")\n";
+    std::cout << "eXY = (" << ex << ", " << ey << ")\n";
+    std::cout << "XY = (" << x << ", " << y << ")\n";
+    std::cout << "dXY = (" << dx << ", " << dy << ")\n";
+    std::cout << "==============\n";
+    m_fluid->addVelocity(x, y, dx, dy);
     m_win.origX = _event->x();
     m_win.origY = _event->y();
     update();
@@ -236,6 +248,9 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   case Qt::Key_2:
     m_fluid->toggleDrawMode(Fluid::DrawMode::MULTIBUFFER);
     break;
+  case Qt::Key_Space:
+    m_fluid->reset();
+    break;
 
   default:
     break;
@@ -248,7 +263,7 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
 void NGLScene::timerEvent(QTimerEvent *)
 {
   auto updatebegin = std::chrono::steady_clock::now();
-  m_fluid->update(0.01f);
+  // m_fluid->update(0.01f);
   auto updateend = std::chrono::steady_clock::now();
   // add to the rolling average
   m_updateTime.push_back(std::chrono::duration_cast<std::chrono::microseconds>(updateend - updatebegin).count());

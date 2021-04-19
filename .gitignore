@@ -54,3 +54,10 @@ cmake_install.cmake
 install_manifest.txt
 build*
 .vscode/
+
+# Docs
+docs/*
+!*.tex
+!*.bib
+!*.pdf
+!docs/img/*.*

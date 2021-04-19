@@ -61,9 +61,10 @@ void NGLScene::initializeGL()
 
   // now to load the shader and set the values
   // grab an instance of shader manager
-  // ngl::ShaderLib::loadShader("PosDir", "shaders/PosDirVertex.glsl", "shaders/PosDirFragment.glsl", "shaders/PosDirGeo.glsl");
-  ngl::ShaderLib::use("nglColourShader");
-  // ngl::ShaderLib::use("PosDir");
+  ngl::ShaderLib::loadShader("PosDir", "shaders/PosDirVertex.glsl", "shaders/PosDirFragment.glsl", "shaders/PosDirGeo.glsl");
+  // ngl::ShaderLib::use("nglColourShader");
+  ngl::ShaderLib::use("PosDir");
+
   ngl::ShaderLib::setUniform("Colour", 1.0f, 1.0f, 1.0f, 1.0f);
   glViewport(0, 0, width(), height());
   m_fluid = std::make_unique<Fluid>(m_gridSize, 0.2f, 0.0f, 0.0000001f);
@@ -82,28 +83,16 @@ void NGLScene::paintGL()
 {
   // clear the screen and depth buffer
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  // Rotation based on the mouse position for our global transform
-  ngl::Transformation trans;
-  // Rotation based on the mouse position for our global
-  // transform
-  ngl::Mat4 rotX;
-  ngl::Mat4 rotY;
-  // create the rotation matrices
-  rotX.rotateX(m_win.spinXFace);
-  rotY.rotateY(m_win.spinYFace);
-  // multiply the rotations
-  m_mouseGlobalTX = rotX * rotY;
-  // add the translations
   //  m_mouseGlobalTX.m_m[3][0] = m_modelPos.m_x;
   m_mouseGlobalTX.m_m[3][1] = m_modelPos.m_z;
   //  m_mouseGlobalTX.m_m[3][2] = m_modelPos.m_z;
-  // ngl::ShaderLib::use("PosDir");
-  ngl::ShaderLib::use("nglColourShader");
+  ngl::ShaderLib::use("PosDir");
+  // ngl::ShaderLib::use("nglColourShader");
   ngl::Mat4 MVP;
   MVP = m_project * m_view * m_mouseGlobalTX;
 
   ngl::ShaderLib::setUniform("MVP", MVP);
-  glPointSize(1);
+  glPointSize(100);
 
   auto drawbegin = std::chrono::steady_clock::now();
 
@@ -126,40 +115,6 @@ void NGLScene::paintGL()
 //----------------------------------------------------------------------------------------------------------------------
 void NGLScene::mouseMoveEvent(QMouseEvent *_event)
 {
-  // note the method buttons() is the button state when event was called
-  // that is different from button() which is used to check which button was
-  // pressed when the mousePress/Release event is generated
-  if (m_win.rotate && _event->buttons() == Qt::LeftButton)
-  {
-    float scale = 0.5f;
-    int ex = _event->x();
-    int ey = _event->y();
-    int dx = static_cast<int>(scale * (ex - m_win.origX));
-    int dy = -static_cast<int>(scale * (ey - m_win.origY));
-    int x = m_gridSize - static_cast<int>(static_cast<float>(m_win.origX) / m_win.width * m_gridSize);
-    int y = m_gridSize - static_cast<int>(static_cast<float>(m_win.origY) / m_win.height * m_gridSize);
-    std::cout << "==============\n";
-    std::cout << "XY  = (" << m_win.origX << ", " << m_win.origY << ")\n";
-    std::cout << "eXY = (" << ex << ", " << ey << ")\n";
-    std::cout << "XY = (" << x << ", " << y << ")\n";
-    std::cout << "dXY = (" << dx << ", " << dy << ")\n";
-    std::cout << "==============\n";
-    m_fluid->addVelocity(x, y, dx, dy);
-    m_win.origX = _event->x();
-    m_win.origY = _event->y();
-    update();
-  }
-  // right mouse translate code
-  else if (m_win.translate && _event->buttons() == Qt::RightButton)
-  {
-    int diffX = static_cast<int>(_event->x() - m_win.origXPos);
-    int diffY = static_cast<int>(_event->y() - m_win.origYPos);
-    m_win.origXPos = _event->x();
-    m_win.origYPos = _event->y();
-    m_modelPos.m_x += INCREMENT * diffX;
-    m_modelPos.m_y -= INCREMENT * diffY;
-    update();
-  }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -169,16 +124,8 @@ void NGLScene::mousePressEvent(QMouseEvent *_event)
   // store the value where the maouse was clicked (x,y) and set the Rotate flag to true
   if (_event->button() == Qt::LeftButton)
   {
-    m_win.origX = _event->x();
-    m_win.origY = _event->y();
-    m_win.rotate = true;
-  }
-  // right mouse translate mode
-  else if (_event->button() == Qt::RightButton)
-  {
-    m_win.origXPos = _event->x();
-    m_win.origYPos = _event->y();
-    m_win.translate = true;
+    m_win.x0 = _event->x();
+    m_win.y0 = _event->y();
   }
 }
 
@@ -189,12 +136,23 @@ void NGLScene::mouseReleaseEvent(QMouseEvent *_event)
   // we then set Rotate to false
   if (_event->button() == Qt::LeftButton)
   {
-    m_win.rotate = false;
-  }
-  // right mouse translate mode
-  if (_event->button() == Qt::RightButton)
-  {
-    m_win.translate = false;
+    int x1 = _event->x();
+    int y1 = _event->y();
+
+    float dx = m_win.scale * (x1 - m_win.x0);
+    float dy = m_win.scale * (y1 - m_win.y0);
+
+    int x = m_gridSize - static_cast<int>(static_cast<float>(m_win.x0) / m_win.width * m_gridSize);
+    int y = m_gridSize - static_cast<int>(static_cast<float>(m_win.y0) / m_win.height * m_gridSize);
+
+    std::cout << "pos 0  = (" << m_win.x0 << ", " << m_win.y0 << ")\n";
+    std::cout << "pos 1  = (" << x1 << ", " << y1 << ")\n";
+    std::cout << "delXY  = (" << dx << ", " << dy << ")\n";
+    std::cout << "gridXY = (" << x << ", " << y << ")\n";
+    std::cout << "===================\n";
+
+    m_fluid->addVelocity(x, y, dx, dy);
+    update();
   }
 }
 

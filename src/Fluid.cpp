@@ -233,15 +233,47 @@ void Fluid::updateParticles()
             int x1 = static_cast<int>(ceil(static_cast<float>(pos.m_x)));
             int y1 = static_cast<int>(ceil(static_cast<float>(pos.m_y)));
 
+            // int x1 = std::clamp(x0 + 1, 0, static_cast<int>(m_size));
+            // int y1 = std::clamp(y0 + 1, 0, static_cast<int>(m_size));
+
+            // x0 = std::clamp(x0 - 1, 0, static_cast<int>(m_size));
+            // y0 = std::clamp(y0 - 1, 0, static_cast<int>(m_size));
+
             auto xVel = 0.25f * (m_Vx[IX(x0, y0)] + m_Vx[IX(x1, y0)] + m_Vx[IX(x0, y1)] + m_Vx[IX(x1, y1)]);
             auto yVel = 0.25f * (m_Vy[IX(x0, y0)] + m_Vy[IX(x1, y0)] + m_Vy[IX(x0, y1)] + m_Vy[IX(x1, y1)]);
 
-            m_pos[IX(i, j)] += ngl::Vec3{xVel, 0.0f, yVel};
+            ngl::Vec3 velocity = ngl::Vec3{xVel, 0.0f, yVel};
+
+            m_pos[IX(i, j)] += velocity;
 
             if (m_pos[IX(i, j)].m_x <= 0.0f || m_pos[IX(i, j)].m_x >= m_size || m_pos[IX(i, j)].m_z >= m_size || m_pos[IX(i, j)].m_z <= 0.0f)
             {
                 resetParticle(i, j);
             }
+
+            if (velocity.lengthSquared() != 0.0f)
+            {
+                velocity.normalize();
+            }
+
+            m_dir[IX(i, j)] = velocity / 5.0f;
+
+            // auto pos = m_pos[IX(i, j)];
+            // int x0 = static_cast<int>(floor(static_cast<float>(pos.m_x)));
+            // int y0 = static_cast<int>(floor(static_cast<float>(pos.m_y)));
+
+            // int x1 = static_cast<int>(ceil(static_cast<float>(pos.m_x)));
+            // int y1 = static_cast<int>(ceil(static_cast<float>(pos.m_y)));
+
+            // auto xVel = 0.25f * (m_Vx[IX(x0, y0)] + m_Vx[IX(x1, y0)] + m_Vx[IX(x0, y1)] + m_Vx[IX(x1, y1)]);
+            // auto yVel = 0.25f * (m_Vy[IX(x0, y0)] + m_Vy[IX(x1, y0)] + m_Vy[IX(x0, y1)] + m_Vy[IX(x1, y1)]);
+
+            // m_pos[IX(i, j)] += ngl::Vec3{xVel, 0.0f, yVel};
+
+            // if (m_pos[IX(i, j)].m_x <= 0.0f || m_pos[IX(i, j)].m_x >= m_size || m_pos[IX(i, j)].m_z >= m_size || m_pos[IX(i, j)].m_z <= 0.0f)
+            // {
+            //     resetParticle(i, j);
+            // }
         }
     }
     // for (int j = 0; j < m_size; j++)
@@ -291,7 +323,7 @@ void Fluid::resetParticle(size_t i, size_t j)
 {
     m_pos[IX(i, j)] = ngl::Vec3{static_cast<ngl::Real>(i), 0.0f, static_cast<ngl::Real>(j)};
     // m_pos[IX(i, j)] = ngl::Vec3{32, 0.0f, 32};
-    m_dir[IX(i, j)] = ngl::Vec3{0.0f, 0.0f, 0.0f};
+    // m_dir[IX(i, j)] = ngl::Vec3{0.0f, 0.0f, 0.0f};
     // m_dir[IX(i, j)] = ngl::Random::getRandomVec3() * 2.0f;
     // m_dir[IX(i, j)].m_y = 0.0f; // this needs to be done as reflect is 3d
     // m_maxspeed[IX(i, j)] = ngl::Random::randomPositiveNumber(5) + 0.1f;
@@ -316,48 +348,47 @@ void Fluid::toggleDrawMode(DrawMode _mode)
 
 void Fluid::draw() const
 {
-    // if (m_drawMode == DrawMode::MULTIBUFFER)
-    // {
-    //     m_vao->bind();
-    //     // going to get a pointer to the data and update using memcpy
-    //     auto ptr = m_vao->mapBuffer(0, GL_READ_WRITE);
-    //     memcpy(ptr, &m_pos[0].m_x, m_pos.size() * sizeof(ngl::Vec3));
-    //     m_vao->unmapBuffer();
+    if (m_drawMode == DrawMode::MULTIBUFFER)
+    {
+        m_vao->bind();
+        // going to get a pointer to the data and update using memcpy
+        auto ptr = m_vao->mapBuffer(0, GL_READ_WRITE);
+        memcpy(ptr, &m_pos[0].m_x, m_pos.size() * sizeof(ngl::Vec3));
+        m_vao->unmapBuffer();
 
-    //     ptr = m_vao->mapBuffer(1, GL_READ_WRITE);
-    //     memcpy(ptr, &m_dir[0].m_x, m_dir.size() * sizeof(ngl::Vec3));
-    //     m_vao->unmapBuffer();
+        ptr = m_vao->mapBuffer(1, GL_READ_WRITE);
+        memcpy(ptr, &m_dir[0].m_x, m_dir.size() * sizeof(ngl::Vec3));
+        m_vao->unmapBuffer();
 
-    //     // now unbind
-    //     m_vao->draw();
-    //     m_vao->unbind();
-    // }
-    // else
-    // {
-    //     glBindVertexArray(m_svao);
-    //     // bind the buffer to copy the data
-    //     glBindBuffer(GL_ARRAY_BUFFER, m_vboID);
-    //     // copy the pos data
-    //     glBufferSubData(GL_ARRAY_BUFFER, 0, m_numParticles * sizeof(ngl::Vec3), &m_pos[0].m_x);
-    //     // concatinate the dir data
-    //     glBufferSubData(GL_ARRAY_BUFFER, m_numParticles * sizeof(ngl::Vec3), m_numParticles * sizeof(ngl::Vec3), &m_dir[0].m_x);
-    //     // draw
-    //     glDrawArrays(GL_POINTS, 0, m_numParticles);
-    //     glBindVertexArray(0);
-    // }
-    // bindTextures();
+        // now unbind
+        m_vao->draw();
+        m_vao->unbind();
+    }
+    else
+    {
+        glBindVertexArray(m_svao);
+        // bind the buffer to copy the data
+        glBindBuffer(GL_ARRAY_BUFFER, m_vboID);
+        // copy the pos data
+        glBufferSubData(GL_ARRAY_BUFFER, 0, m_numParticles * sizeof(ngl::Vec3), &m_pos[0].m_x);
+        // concatinate the dir data
+        glBufferSubData(GL_ARRAY_BUFFER, m_numParticles * sizeof(ngl::Vec3), m_numParticles * sizeof(ngl::Vec3), &m_dir[0].m_x);
+        // draw
+        glDrawArrays(GL_POINTS, 0, m_numParticles);
+        glBindVertexArray(0);
+    }
 
-    m_vao->bind();
+    // m_vao->bind();
 
-    m_vao->setData(ngl::SimpleVAO::VertexData(m_pos.size() * sizeof(ngl::Vec3), m_pos[0].m_x));
-    m_vao->setVertexAttributePointer(0, 3, GL_FLOAT, 0, 0);
+    // m_vao->setData(ngl::SimpleVAO::VertexData(m_pos.size() * sizeof(ngl::Vec3), m_pos[0].m_x));
+    // m_vao->setVertexAttributePointer(0, 3, GL_FLOAT, 0, 0);
 
-    // m_vao->setData(ngl::SimpleVAO::VertexData(colours.size() * sizeof(ngl::Vec3), colours[0].m_x));
-    // m_vao->setVertexAttributePointer(1, 3, GL_FLOAT, 0, 3);
+    // // m_vao->setData(ngl::SimpleVAO::VertexData(colours.size() * sizeof(ngl::Vec3), colours[0].m_x));
+    // // m_vao->setVertexAttributePointer(1, 3, GL_FLOAT, 0, 3);
 
-    m_vao->setNumIndices(m_pos.size());
+    // m_vao->setNumIndices(m_pos.size());
 
-    // now unbind
-    m_vao->draw();
-    m_vao->unbind();
+    // // now unbind
+    // m_vao->draw();
+    // m_vao->unbind();
 }

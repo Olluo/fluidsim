@@ -12,16 +12,12 @@ Fluid::Fluid(size_t _size, float diffusion, float viscosity, float dt) : m_numPa
                                                                          m_dt{dt},
                                                                          m_diff{diffusion},
                                                                          m_visc{viscosity},
-                                                                         m_s(_size * _size),
-                                                                         m_density(_size * _size),
                                                                          m_Vx(_size * _size),
                                                                          m_Vy(_size * _size),
                                                                          m_Vx0(_size * _size),
                                                                          m_Vy0(_size * _size),
                                                                          m_pos(m_numParticles),
-                                                                         m_dir(m_numParticles),
-                                                                         m_acceleration(m_numParticles),
-                                                                         m_maxspeed(m_numParticles)
+                                                                         m_dir(m_numParticles)
 {
     initGrid();
 
@@ -66,25 +62,20 @@ void Fluid::step()
 
     project(&m_Vx, &m_Vy, &m_Vx0, &m_Vy0);
 
-    diffuse(0, &m_s, &m_density, m_diff, m_dt);
-    advect(0, &m_density, &m_s, &m_Vx, &m_Vy, m_dt);
+    // diffuse(0, &m_s, &m_density, m_diff, m_dt);
+    // advect(0, &m_density, &m_s, &m_Vx, &m_Vy, m_dt);
 
     updateParticles();
 }
 
-void Fluid::addDensity(int _x, int _y, float _amount)
+void Fluid::addVelocity(ngl::Vec2 _pos, ngl::Vec2 _v)
 {
-    m_density.at(IX(_x, _y)) += _amount;
-}
+    _pos.m_x = std::clamp(_pos.m_x, 0.0f, static_cast<ngl::Real>(m_size - 1));
+    _pos.m_y = std::clamp(_pos.m_y, 0.0f, static_cast<ngl::Real>(m_size - 1));
+    size_t index = IX(static_cast<size_t>(_pos.m_x), static_cast<size_t>(_pos.m_y));
 
-void Fluid::addVelocity(int _x, int _y, float _amountX, float _amountY)
-{
-    _x = std::clamp(_x, 0, static_cast<int>(m_size - 1));
-    _y = std::clamp(_y, 0, static_cast<int>(m_size - 1));
-    int index = IX(_x, _y);
-
-    m_Vx[index] += _amountX;
-    m_Vy[index] += _amountY;
+    m_Vx[index] += _v.m_x;
+    m_Vy[index] += _v.m_y;
 }
 
 void Fluid::resetVelocities()
@@ -246,9 +237,24 @@ void Fluid::updateParticles()
 
             m_pos[IX(i, j)] += velocity;
 
-            if (m_pos[IX(i, j)].m_x <= 0.0f || m_pos[IX(i, j)].m_x >= m_size || m_pos[IX(i, j)].m_z >= m_size || m_pos[IX(i, j)].m_z <= 0.0f)
+            if (m_pos[IX(i, j)].m_x <= 0.1f)
             {
-                resetParticle(i, j);
+                m_pos[IX(i, j)].m_x = static_cast<ngl::Real>(m_size - 1);
+            }
+
+            if (m_pos[IX(i, j)].m_x >= m_size - 0.1f)
+            {
+                m_pos[IX(i, j)].m_x = static_cast<ngl::Real>(0.0f + 1);
+            }
+
+            if (m_pos[IX(i, j)].m_z <= 0.1f)
+            {
+                m_pos[IX(i, j)].m_z = static_cast<ngl::Real>(m_size - 1);
+            }
+
+            if (m_pos[IX(i, j)].m_z >= m_size - 0.1f)
+            {
+                m_pos[IX(i, j)].m_z = static_cast<ngl::Real>(0.0f + 1);
             }
 
             if (velocity.lengthSquared() != 0.0f)
@@ -257,77 +263,13 @@ void Fluid::updateParticles()
             }
 
             m_dir[IX(i, j)] = velocity / 5.0f;
-
-            // auto pos = m_pos[IX(i, j)];
-            // int x0 = static_cast<int>(floor(static_cast<float>(pos.m_x)));
-            // int y0 = static_cast<int>(floor(static_cast<float>(pos.m_y)));
-
-            // int x1 = static_cast<int>(ceil(static_cast<float>(pos.m_x)));
-            // int y1 = static_cast<int>(ceil(static_cast<float>(pos.m_y)));
-
-            // auto xVel = 0.25f * (m_Vx[IX(x0, y0)] + m_Vx[IX(x1, y0)] + m_Vx[IX(x0, y1)] + m_Vx[IX(x1, y1)]);
-            // auto yVel = 0.25f * (m_Vy[IX(x0, y0)] + m_Vy[IX(x1, y0)] + m_Vy[IX(x0, y1)] + m_Vy[IX(x1, y1)]);
-
-            // m_pos[IX(i, j)] += ngl::Vec3{xVel, 0.0f, yVel};
-
-            // if (m_pos[IX(i, j)].m_x <= 0.0f || m_pos[IX(i, j)].m_x >= m_size || m_pos[IX(i, j)].m_z >= m_size || m_pos[IX(i, j)].m_z <= 0.0f)
-            // {
-            //     resetParticle(i, j);
-            // }
         }
     }
-    // for (int j = 0; j < m_size; j++)
-    // {
-    //     for (int i = 0; i < m_size; i++)
-    //     {
-    //         auto dir = m_dir[IX(i, j)] * ngl::Vec3(m_acceleration[IX(i, j)], 0.0f, m_acceleration[IX(i, j)]) * _dt;
-    //         m_dir[IX(i, j)].clamp(m_maxspeed[IX(i, j)]);
-    //         m_pos[IX(i, j)] += dir;
-    //         if (m_maxspeed[IX(i, j)] <= 0.0f)
-    //         {
-    //             resetParticle(i, j);
-    //         }
-
-    //         float xsize = m_size / 2.0f;
-    //         float zsize = m_size / 2.0f;
-    //         // Now check against the bounds of the grid and reflect if needed this is quite brute force but works
-    //         // left plane
-    //         if (m_pos[IX(i, j)].m_x <= -xsize)
-    //         {
-    //             m_dir[IX(i, j)] = m_dir[IX(i, j)].reflect({1.0f, 0.0f, 0.0f});
-    //             m_maxspeed[IX(i, j)] -= 0.1f;
-    //         }
-    //         // right plane
-    //         else if (m_pos[IX(i, j)].m_x >= xsize)
-    //         {
-    //             m_dir[IX(i, j)] = m_dir[IX(i, j)].reflect({-1.0f, 0.0f, 0.0f});
-    //             m_maxspeed[IX(i, j)] -= 0.1f;
-    //         }
-    //         // top plane
-    //         if (m_pos[IX(i, j)].m_z >= zsize)
-    //         {
-    //             m_dir[IX(i, j)] = m_dir[IX(i, j)].reflect({0.0f, 0.0f, 1.0f});
-    //             m_maxspeed[IX(i, j)] -= 0.1f;
-    //         }
-    //         // bottom plane
-    //         else if (m_pos[IX(i, j)].m_z <= -zsize)
-    //         {
-    //             m_dir[IX(i, j)] = m_dir[IX(i, j)].reflect({0.0f, 0.0f, -1.0f});
-    //             m_maxspeed[IX(i, j)] -= 0.1f;
-    //         }
-    //     }
-    // }
 }
 
 void Fluid::resetParticle(size_t i, size_t j)
 {
     m_pos[IX(i, j)] = ngl::Vec3{static_cast<ngl::Real>(i), 0.0f, static_cast<ngl::Real>(j)};
-    // m_pos[IX(i, j)] = ngl::Vec3{32, 0.0f, 32};
-    // m_dir[IX(i, j)] = ngl::Vec3{0.0f, 0.0f, 0.0f};
-    // m_dir[IX(i, j)] = ngl::Random::getRandomVec3() * 2.0f;
-    // m_dir[IX(i, j)].m_y = 0.0f; // this needs to be done as reflect is 3d
-    // m_maxspeed[IX(i, j)] = ngl::Random::randomPositiveNumber(5) + 0.1f;
-    // m_acceleration[IX(i, j)] = ngl::Random::randomPositiveNumber(5) + 0.1f;
 }
 
 void Fluid::initGrid()
@@ -374,21 +316,7 @@ void Fluid::draw() const
         // concatinate the dir data
         glBufferSubData(GL_ARRAY_BUFFER, m_numParticles * sizeof(ngl::Vec3), m_numParticles * sizeof(ngl::Vec3), &m_dir[0].m_x);
         // draw
-        glDrawArrays(GL_POINTS, 0, m_numParticles);
+        glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(m_numParticles));
         glBindVertexArray(0);
     }
-
-    // m_vao->bind();
-
-    // m_vao->setData(ngl::SimpleVAO::VertexData(m_pos.size() * sizeof(ngl::Vec3), m_pos[0].m_x));
-    // m_vao->setVertexAttributePointer(0, 3, GL_FLOAT, 0, 0);
-
-    // // m_vao->setData(ngl::SimpleVAO::VertexData(colours.size() * sizeof(ngl::Vec3), colours[0].m_x));
-    // // m_vao->setVertexAttributePointer(1, 3, GL_FLOAT, 0, 3);
-
-    // m_vao->setNumIndices(m_pos.size());
-
-    // // now unbind
-    // m_vao->draw();
-    // m_vao->unbind();
 }

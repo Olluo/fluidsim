@@ -151,7 +151,7 @@ void NGLScene::mouseReleaseEvent(QMouseEvent *_event)
     std::cout << "gridXY = (" << x << ", " << y << ")\n";
     std::cout << "===================\n";
 
-    m_fluid->addVelocity(x, y, dx, dy);
+    m_fluid->addVelocity(ngl::Vec2{static_cast<ngl::Real>(x), static_cast<ngl::Real>(y)}, ngl::Vec2{dx, dy});
     update();
   }
 }

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <ngl/AbstractVAO.h>
+#include <ngl/Vec2.h>
 #include <ngl/Vec3.h>
 
 const int iter = 4;
@@ -15,8 +16,8 @@ public:
     Fluid(size_t _size, float _diffusion, float _viscosity, float _dt);
 
     void step();
-    void addDensity(int _x, int _y, float _amount);
-    void addVelocity(int _x, int _y, float _amountX, float _amountY);
+    // void addVelocity(int _x, int _y, float _amountX, float _amountY);
+    void addVelocity(ngl::Vec2 _pos, ngl::Vec2 _v);
     void reset()
     {
         resetVelocities();
@@ -37,8 +38,8 @@ private:
     float m_diff;
     float m_visc;
 
-    std::vector<float> m_s;
-    std::vector<float> m_density;
+    // std::vector<float> m_s;
+    // std::vector<float> m_density;
 
     std::vector<float> m_Vx;
     std::vector<float> m_Vy;
@@ -52,8 +53,8 @@ private:
     GLuint m_vboID;
     std::vector<ngl::Vec3> m_pos;
     std::vector<ngl::Vec3> m_dir;
-    std::vector<float> m_acceleration;
-    std::vector<float> m_maxspeed;
+    // std::vector<float> m_acceleration;
+    // std::vector<float> m_maxspeed;
     DrawMode m_drawMode = DrawMode::SINGLEBUFFER;
 
     void initGrid();
@@ -62,7 +63,7 @@ private:
     void resetParticle(size_t i, size_t j);
     void updateParticles();
 
-    int IX(int _x, int _y)
+    size_t IX(size_t _x, size_t _y)
     {
         return _x + _y * m_size;
     }

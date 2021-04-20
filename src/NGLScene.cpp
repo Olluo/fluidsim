@@ -50,7 +50,7 @@ void NGLScene::initializeGL()
   // Now we will create a basic Camera from the graphics library
   // This is a static camera so it only needs to be set once
   // First create Values for the camera position
-  ngl::Vec3 from(static_cast<float>(m_gridSize - 1) / 2.0f, m_gridSize + 2, static_cast<float>(m_gridSize - 1) / 2.0f);
+  ngl::Vec3 from(static_cast<float>(m_gridSize - 1) / 2.0f, m_gridSize + 10, static_cast<float>(m_gridSize - 1) / 2.0f);
   ngl::Vec3 to(static_cast<float>(m_gridSize - 1) / 2.0f, 0, static_cast<float>(m_gridSize - 1) / 2.0f);
   ngl::Vec3 up(0, 0, 1);
 
@@ -139,8 +139,8 @@ void NGLScene::mouseReleaseEvent(QMouseEvent *_event)
     int x1 = _event->x();
     int y1 = _event->y();
 
-    float dx = m_win.scale * (x1 - m_win.x0);
-    float dy = m_win.scale * (y1 - m_win.y0);
+    float dx = -m_win.scale * (x1 - m_win.x0);
+    float dy = -m_win.scale * (y1 - m_win.y0);
 
     int x = m_gridSize - static_cast<int>(static_cast<float>(m_win.x0) / m_win.width * m_gridSize);
     int y = m_gridSize - static_cast<int>(static_cast<float>(m_win.y0) / m_win.height * m_gridSize);

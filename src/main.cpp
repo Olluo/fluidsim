@@ -13,7 +13,7 @@ int main(int argc, char **argv)
   QCommandLineParser parser;
   parser.setApplicationDescription("Grid Based simulations");
 
-  parser.addOptions({{{"s", "size"}, "set size", "size", "20"}});
+  parser.addOptions({{{"s", "size"}, "set size", "size", "100"}});
 
   // create an OpenGL format specifier
   QSurfaceFormat format;

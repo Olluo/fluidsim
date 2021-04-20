@@ -218,43 +218,38 @@ void Fluid::updateParticles()
         for (int i = 0; i < m_size; i++)
         {
             auto pos = m_pos[IX(i, j)];
+
             int x0 = static_cast<int>(floor(static_cast<float>(pos.m_x)));
-            int y0 = static_cast<int>(floor(static_cast<float>(pos.m_y)));
+            int y0 = static_cast<int>(floor(static_cast<float>(pos.m_z)));
 
             int x1 = static_cast<int>(ceil(static_cast<float>(pos.m_x)));
-            int y1 = static_cast<int>(ceil(static_cast<float>(pos.m_y)));
-
-            // int x1 = std::clamp(x0 + 1, 0, static_cast<int>(m_size));
-            // int y1 = std::clamp(y0 + 1, 0, static_cast<int>(m_size));
-
-            // x0 = std::clamp(x0 - 1, 0, static_cast<int>(m_size));
-            // y0 = std::clamp(y0 - 1, 0, static_cast<int>(m_size));
+            int y1 = static_cast<int>(ceil(static_cast<float>(pos.m_z)));
 
             auto xVel = 0.25f * (m_Vx[IX(x0, y0)] + m_Vx[IX(x1, y0)] + m_Vx[IX(x0, y1)] + m_Vx[IX(x1, y1)]);
             auto yVel = 0.25f * (m_Vy[IX(x0, y0)] + m_Vy[IX(x1, y0)] + m_Vy[IX(x0, y1)] + m_Vy[IX(x1, y1)]);
 
             ngl::Vec3 velocity = ngl::Vec3{xVel, 0.0f, yVel};
 
-            m_pos[IX(i, j)] += velocity;
+            pos += velocity;
 
-            if (m_pos[IX(i, j)].m_x <= 0.1f)
+            if (pos.m_x < 0.0f)
             {
-                m_pos[IX(i, j)].m_x = static_cast<ngl::Real>(m_size - 1);
+                pos.m_x = static_cast<ngl::Real>(m_size - 1);
             }
 
-            if (m_pos[IX(i, j)].m_x >= m_size - 0.1f)
+            if (pos.m_x >= m_size - 1)
             {
-                m_pos[IX(i, j)].m_x = static_cast<ngl::Real>(0.0f + 1);
+                pos.m_x = static_cast<ngl::Real>(0.0f);
             }
 
-            if (m_pos[IX(i, j)].m_z <= 0.1f)
+            if (pos.m_z < 0.0f)
             {
-                m_pos[IX(i, j)].m_z = static_cast<ngl::Real>(m_size - 1);
+                pos.m_z = static_cast<ngl::Real>(m_size - 1);
             }
 
-            if (m_pos[IX(i, j)].m_z >= m_size - 0.1f)
+            if (pos.m_z >= m_size - 1)
             {
-                m_pos[IX(i, j)].m_z = static_cast<ngl::Real>(0.0f + 1);
+                pos.m_z = static_cast<ngl::Real>(0.0f);
             }
 
             if (velocity.lengthSquared() != 0.0f)
@@ -262,7 +257,18 @@ void Fluid::updateParticles()
                 velocity.normalize();
             }
 
+            m_pos[IX(i, j)] = pos;
             m_dir[IX(i, j)] = velocity / 5.0f;
+            {
+            // m_dir[IX(i, j)] = ngl::Vec3{m_Vx[IX(i, j)], 0.0f, m_Vy[IX(i, j)]};
+
+            // if (m_dir[IX(i, j)].lengthSquared() != 0.0f)
+            // {
+            //     m_dir[IX(i, j)].normalize();
+            // }
+
+            // m_dir[IX(i, j)] /= 5.0f;
+            }
         }
     }
 }

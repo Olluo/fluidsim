@@ -10,11 +10,6 @@ int main(int argc, char **argv)
 {
   QGuiApplication app(argc, argv);
 
-  QCommandLineParser parser;
-  parser.setApplicationDescription("Grid Based simulations");
-
-  parser.addOptions({{{"s", "size"}, "set size", "size", "100"}});
-
   // create an OpenGL format specifier
   QSurfaceFormat format;
   // set the number of samples for multisampling
@@ -34,12 +29,7 @@ int main(int argc, char **argv)
   format.setProfile(QSurfaceFormat::CoreProfile);
   // now set the depth buffer to 24 bits
   format.setDepthBufferSize(24);
-  // now we are going to create our scene window
-  parser.process(app);
-
-  uint32_t size = parser.value("size").toInt();
-  std::cout << size;
-  NGLScene window(size);
+  NGLScene window(100);
   // and set the OpenGL format
   window.setFormat(format);
   // we can now query the version to see if it worked

@@ -50,7 +50,7 @@ void NGLScene::initializeGL()
   // Now we will create a basic Camera from the graphics library
   // This is a static camera so it only needs to be set once
   // First create Values for the camera position
-  ngl::Vec3 from(static_cast<float>(m_gridSize - 1) / 2.0f, m_gridSize + 10, static_cast<float>(m_gridSize - 1) / 2.0f);
+  ngl::Vec3 from(static_cast<float>(m_gridSize - 1) / 2.0f, m_gridSize + 17, static_cast<float>(m_gridSize - 1) / 2.0f);
   ngl::Vec3 to(static_cast<float>(m_gridSize - 1) / 2.0f, 0, static_cast<float>(m_gridSize - 1) / 2.0f);
   ngl::Vec3 up(0, 0, 1);
 
@@ -68,6 +68,7 @@ void NGLScene::initializeGL()
   ngl::ShaderLib::setUniform("Colour", 1.0f, 1.0f, 1.0f, 1.0f);
   glViewport(0, 0, width(), height());
   m_fluid = std::make_unique<Fluid>(m_gridSize, 0.2f, 0.0f, 0.0000001f);
+  m_fluid->addVelocity(ngl::Vec2{10.0f, 10.0f}, ngl::Vec2{-.0001f, 0.0f});
   m_fluid->step();
   // m_fluid->addVelocity(m_gridSize / 2.0f, m_gridSize / 2.0f, 5, 0);
   ngl::VAOPrimitives::createLineGrid("lineGrid", m_gridSize, m_gridSize, 1);
@@ -139,19 +140,27 @@ void NGLScene::mouseReleaseEvent(QMouseEvent *_event)
     int x1 = _event->x();
     int y1 = _event->y();
 
-    float dx = -m_win.scale * (x1 - m_win.x0);
-    float dy = -m_win.scale * (y1 - m_win.y0);
+    ngl::Vec2 diff{static_cast<ngl::Real>(m_win.x0 - x1), static_cast<ngl::Real>(m_win.y0 - y1)};
+    if (diff.lengthSquared() != 0)
+    {
+      diff.normalize();
+    }
+    diff *= m_win.scale;
 
     int x = m_gridSize - static_cast<int>(static_cast<float>(m_win.x0) / m_win.width * m_gridSize);
     int y = m_gridSize - static_cast<int>(static_cast<float>(m_win.y0) / m_win.height * m_gridSize);
 
-    std::cout << "pos 0  = (" << m_win.x0 << ", " << m_win.y0 << ")\n";
-    std::cout << "pos 1  = (" << x1 << ", " << y1 << ")\n";
-    std::cout << "delXY  = (" << dx << ", " << dy << ")\n";
-    std::cout << "gridXY = (" << x << ", " << y << ")\n";
-    std::cout << "===================\n";
+    m_fluid->addVelocity(ngl::Vec2{static_cast<ngl::Real>(x - 1), static_cast<ngl::Real>(y - 1)}, diff);
+    m_fluid->addVelocity(ngl::Vec2{static_cast<ngl::Real>(x), static_cast<ngl::Real>(y - 1)}, diff);
+    m_fluid->addVelocity(ngl::Vec2{static_cast<ngl::Real>(x - 1), static_cast<ngl::Real>(y - 1)}, diff);
 
-    m_fluid->addVelocity(ngl::Vec2{static_cast<ngl::Real>(x), static_cast<ngl::Real>(y)}, ngl::Vec2{dx, dy});
+    m_fluid->addVelocity(ngl::Vec2{static_cast<ngl::Real>(x - 1), static_cast<ngl::Real>(y)}, diff);
+    m_fluid->addVelocity(ngl::Vec2{static_cast<ngl::Real>(x), static_cast<ngl::Real>(y)}, diff);
+    m_fluid->addVelocity(ngl::Vec2{static_cast<ngl::Real>(x - 1), static_cast<ngl::Real>(y)}, diff);
+
+    m_fluid->addVelocity(ngl::Vec2{static_cast<ngl::Real>(x - 1), static_cast<ngl::Real>(y + 1)}, diff);
+    m_fluid->addVelocity(ngl::Vec2{static_cast<ngl::Real>(x), static_cast<ngl::Real>(y + 1)}, diff);
+    m_fluid->addVelocity(ngl::Vec2{static_cast<ngl::Real>(x - 1), static_cast<ngl::Real>(y + 1)}, diff);
     update();
   }
 }
@@ -169,6 +178,7 @@ void NGLScene::wheelEvent(QWheelEvent *_event)
   {
     m_modelPos.m_z -= ZOOM;
   }
+  m_modelPos.m_z = std::clamp(m_modelPos.m_z, 0.0f, static_cast<ngl::Real>(m_gridSize + 17));
   update();
 }
 //----------------------------------------------------------------------------------------------------------------------
@@ -208,6 +218,7 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
     break;
   case Qt::Key_Space:
     m_fluid->reset();
+    m_fluid->addVelocity(ngl::Vec2{10.0f, 10.0f}, ngl::Vec2{-.0001f, 0.0f});
     break;
 
   default:

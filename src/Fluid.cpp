@@ -14,10 +14,8 @@ Fluid::Fluid(size_t _size, float diffusion, float viscosity, float dt) : m_numPa
                                                                          m_visc{viscosity},
                                                                          m_Vx(_size * _size),
                                                                          m_Vy(_size * _size),
-                                                                         m_v(_size * _size),
                                                                          m_Vx0(_size * _size),
                                                                          m_Vy0(_size * _size),
-                                                                         m_v0(_size * _size),
                                                                          m_pos(m_numParticles),
                                                                          m_dir(m_numParticles)
 {
@@ -54,30 +52,20 @@ Fluid::Fluid(size_t _size, float diffusion, float viscosity, float dt) : m_numPa
 
 void Fluid::step()
 {
-    std::vector<float> Vx;
-    std::vector<float> Vy;
-    std::vector<float> Vx0;
-    std::vector<float> Vy0;
+    diffuse(1, &m_Vx0, &m_Vx, m_visc, m_dt);
+    diffuse(2, &m_Vy0, &m_Vy, m_visc, m_dt);
 
-    diffuse();
+    project(&m_Vx0, &m_Vy0, &m_Vx, &m_Vy);
 
-    splitter(m_v, &Vx, &Vy);
-    splitter(m_v0, &Vx0, &Vy0);
+    advect(1, &m_Vx, &m_Vx0, &m_Vx0, &m_Vy0, m_dt);
+    advect(2, &m_Vy, &m_Vy0, &m_Vx0, &m_Vy0, m_dt);
 
-    // diffuse(1, &Vx0, &Vx);
-    // diffuse(2, &Vy0, &Vy);
+    project(&m_Vx, &m_Vy, &m_Vx0, &m_Vy0);
 
-    project(&Vx0, &Vy0, &Vx, &Vy);
-
-    advect(1, &Vx, &Vx0, &Vx0, &Vy0);
-    advect(2, &Vy, &Vy0, &Vx0, &Vy0);
-
-    project(&Vx, &Vy, &Vx0, &Vy0);
+    // diffuse(0, &m_s, &m_density, m_diff, m_dt);
+    // advect(0, &m_density, &m_s, &m_Vx, &m_Vy, m_dt);
 
     updateParticles();
-
-    merger(&m_v, Vx, Vy);
-    merger(&m_v0, Vx0, Vy0);
 }
 
 void Fluid::addVelocity(ngl::Vec2 _pos, ngl::Vec2 _v)
@@ -88,15 +76,12 @@ void Fluid::addVelocity(ngl::Vec2 _pos, ngl::Vec2 _v)
 
     m_Vx[index] += _v.m_x;
     m_Vy[index] += _v.m_y;
-    m_v[index] += _v;
 }
 
 void Fluid::resetVelocities()
 {
     std::fill(m_Vx.begin(), m_Vx.end(), 0.0f);
     std::fill(m_Vy.begin(), m_Vy.end(), 0.0f);
-    std::fill(m_v.begin(), m_v.end(), ngl::Vec2{});
-    std::fill(m_v0.begin(), m_v0.end(), ngl::Vec2{});
 }
 
 void Fluid::set_bnd(int _b, std::vector<float> *_x)
@@ -118,29 +103,6 @@ void Fluid::set_bnd(int _b, std::vector<float> *_x)
     _x->at(IX(m_size - 1, m_size - 1)) = 0.5f * (_x->at(IX(m_size - 2, m_size - 1)) + _x->at(IX(m_size - 1, m_size - 2)));
 }
 
-void Fluid::set_bnd(std::vector<ngl::Vec2> *_v)
-{
-    // set top and bottom rows to reflect in y
-    for (int i = 1; i < m_size - 1; i++)
-    {
-        _v->at(IX(i, 0)).m_y = -_v->at(IX(i, 1)).m_y;
-        _v->at(IX(i, m_size - 1)).m_y = -_v->at(IX(i, m_size - 2)).m_y;
-    }
-
-    // set left and right columns to reflect in x
-    for (int j = 1; j < m_size - 1; j++)
-    {
-        _v->at(IX(0, j)).m_x = -_v->at(IX(1, j)).m_x;
-        _v->at(IX(m_size - 1, j)).m_x = -_v->at(IX(m_size - 2, j)).m_x;
-    }
-
-    // set corners to reflect inwards
-    _v->at(IX(0, 0)) = 0.5f * (_v->at(IX(1, 0)) + _v->at(IX(0, 1)));
-    _v->at(IX(0, m_size - 1)) = 0.5f * (_v->at(IX(1, m_size - 1)) + _v->at(IX(0, m_size - 2)));
-    _v->at(IX(m_size - 1, 0)) = 0.5f * (_v->at(IX(m_size - 2, 0)) + _v->at(IX(m_size - 1, 1)));
-    _v->at(IX(m_size - 1, m_size - 1)) = 0.5f * (_v->at(IX(m_size - 2, m_size - 1)) + _v->at(IX(m_size - 1, m_size - 2)));
-}
-
 void Fluid::lin_solve(int _b, std::vector<float> *_x, std::vector<float> *_x0, float _a, float _c)
 {
     float cRecip = 1.0f / _c;
@@ -159,42 +121,18 @@ void Fluid::lin_solve(int _b, std::vector<float> *_x, std::vector<float> *_x0, f
     }
 }
 
-void Fluid::lin_solve(std::vector<ngl::Vec2> *_v, std::vector<ngl::Vec2> *_v0, float _a, float _c)
+void Fluid::diffuse(int _b, std::vector<float> *_x, std::vector<float> *_x0, float _diff, float _dt)
 {
-    float cRecip = 1.0f / _c;
-    for (int k = 0; k < iter; k++)
-    {
-        for (int j = 1; j < m_size - 1; j++)
-        {
-            for (int i = 1; i < m_size - 1; i++)
-            {
-                _v->at(IX(i, j)) =
-                    (_v0->at(IX(i, j)) + _a * (_v->at(IX(i + 1, j)) + _v->at(IX(i - 1, j)) + _v->at(IX(i, j + 1)) + _v->at(IX(i, j - 1)))) * cRecip;
-            }
-        }
-
-        set_bnd(_v);
-    }
-}
-
-void Fluid::diffuse(int _b, std::vector<float> *_x, std::vector<float> *_x0)
-{
-    float a = m_dt * m_visc * (m_size - 2) * (m_size - 2);
+    float a = _dt * _diff * (m_size - 2) * (m_size - 2);
     lin_solve(_b, _x, _x0, a, 1 + 4 * a);
 }
 
-void Fluid::diffuse()
-{
-    float a = m_dt * m_visc * (m_size - 2) * (m_size - 2);
-    lin_solve(&m_v0, &m_v, a, 1 + 4 * a);
-}
-
-void Fluid::advect(int _b, std::vector<float> *_d, std::vector<float> *_d0, std::vector<float> *_velocX, std::vector<float> *_velocY)
+void Fluid::advect(int _b, std::vector<float> *_d, std::vector<float> *_d0, std::vector<float> *_velocX, std::vector<float> *_velocY, float _dt)
 {
     float i0, i1, j0, j1;
 
-    float dtx = m_dt * (m_size - 2);
-    float dty = m_dt * (m_size - 2);
+    float dtx = _dt * (m_size - 2);
+    float dty = _dt * (m_size - 2);
 
     float s0, s1, t0, t1;
     float tmp1, tmp2, x, y;
@@ -294,9 +232,8 @@ void Fluid::updateParticles()
 
             auto xVel = 0.25f * (m_Vx[IX(x0, y0)] + m_Vx[IX(x1, y0)] + m_Vx[IX(x0, y1)] + m_Vx[IX(x1, y1)]);
             auto yVel = 0.25f * (m_Vy[IX(x0, y0)] + m_Vy[IX(x1, y0)] + m_Vy[IX(x0, y1)] + m_Vy[IX(x1, y1)]);
-            auto vel = 0.25f * (m_v[IX(x0, y0)] + m_v[IX(x1, y0)] + m_v[IX(x0, y1)] + m_v[IX(x1, y1)]);
 
-            ngl::Vec3 velocity = ngl::Vec3{vel.m_x, 0.0f, vel.m_y};
+            ngl::Vec3 velocity = ngl::Vec3{xVel, 0.0f, yVel};
 
             m_pos[IX(i, j)] += velocity;
 

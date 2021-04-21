@@ -58,6 +58,8 @@ add_library(
   ${LIBRARY_NAME} STATIC
   ${CMAKE_SOURCE_DIR}/src/Fluid.cpp
   ${CMAKE_SOURCE_DIR}/include/Fluid.h
+  ${CMAKE_SOURCE_DIR}/src/FluidGrid.cpp
+  ${CMAKE_SOURCE_DIR}/include/FluidGrid.h
   )
 
 set_target_properties(
@@ -87,14 +89,13 @@ set_target_properties(${TARGET_NAME} PROPERTIES VERSION ${PROJECT_VERSION})
 # Files needed for the executable
 target_sources(
   ${TARGET_NAME}
-  PRIVATE ${PROJECT_SOURCE_DIR}/src/main.cpp
+  PRIVATE 
           ${CMAKE_SOURCE_DIR}/src/NGLScene.cpp
           ${CMAKE_SOURCE_DIR}/include/NGLScene.h
-          # ${CMAKE_SOURCE_DIR}/shaders/PosDirVertex.glsl
-          # ${CMAKE_SOURCE_DIR}/shaders/PosDirFragment.glsl
-          # ${CMAKE_SOURCE_DIR}/shaders/PosDirGeo.glsl
-          ${CMAKE_SOURCE_DIR}/shaders/VertexShader.glsl
-          ${CMAKE_SOURCE_DIR}/shaders/FragmentShader.glsl
+          ${CMAKE_SOURCE_DIR}/src/main.cpp
+          ${CMAKE_SOURCE_DIR}/shaders/PosDirVertex.glsl
+          ${CMAKE_SOURCE_DIR}/shaders/PosDirFragment.glsl
+          ${CMAKE_SOURCE_DIR}/shaders/PosDirGeo.glsl
           )
 
 # Libraries needed for the executable, our library at the top

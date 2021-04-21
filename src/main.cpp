@@ -29,7 +29,7 @@ int main(int argc, char **argv)
   format.setProfile(QSurfaceFormat::CoreProfile);
   // now set the depth buffer to 24 bits
   format.setDepthBufferSize(24);
-  NGLScene window(100);
+  NGLScene window;
   // and set the OpenGL format
   window.setFormat(format);
   // we can now query the version to see if it worked

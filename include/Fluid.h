@@ -8,75 +8,30 @@
 #include <ngl/Vec2.h>
 #include <ngl/Vec3.h>
 
-const int iter = 4;
+const int c_iter = 4;
+const size_t c_size = 100;
 
 class Fluid
 {
 public:
-    Fluid(size_t _size, float _diffusion, float _viscosity, float _dt);
 
-    void step();
-    // void addVelocity(int _x, int _y, float _amountX, float _amountY);
-    void addVelocity(ngl::Vec2 _pos, ngl::Vec2 _v);
-    void reset()
+    static void set_bnd(int _b, std::vector<float> *_x);
+
+    static void lin_solve(int b, std::vector<float> *_x, std::vector<float> *_x0, float _a, float _c);
+
+    static void diffuse(int _b, std::vector<float> *_x, std::vector<float> *_x0, float _diff, float _dt);
+
+    static void advect(int _b, std::vector<float> *_d, std::vector<float> *_d0, std::vector<float> *_velocX, std::vector<float> *_velocY, float _dt);
+
+    static void project(std::vector<float> *_velocX, std::vector<float> *_velocY, std::vector<float> *_p, std::vector<float> *_div);
+
+    static size_t IX(size_t _x, size_t _y)
     {
-        resetVelocities();
-        initGrid();
+        return _x + _y * c_size;
     }
-    void draw() const;
-    enum class DrawMode
-    {
-        SINGLEBUFFER,
-        MULTIBUFFER
-    };
-    void toggleDrawMode(DrawMode _mode);
-    size_t getNumParticles() const { return m_numParticles; }
 
 private:
-    size_t m_size;
-    float m_dt;
-    float m_diff;
-    float m_visc;
-
-    // std::vector<float> m_s;
-    // std::vector<float> m_density;
-
-    std::vector<float> m_Vx;
-    std::vector<float> m_Vy;
-
-    std::vector<float> m_Vx0;
-    std::vector<float> m_Vy0;
-
-    size_t m_numParticles;
-    std::unique_ptr<ngl::AbstractVAO> m_vao;
-    GLuint m_svao;
-    GLuint m_vboID;
-    std::vector<ngl::Vec3> m_pos;
-    std::vector<ngl::Vec3> m_dir;
-    // std::vector<float> m_acceleration;
-    // std::vector<float> m_maxspeed;
-    DrawMode m_drawMode = DrawMode::SINGLEBUFFER;
-
-    void initGrid();
-    void resetVelocities();
-
-    void resetParticle(size_t i, size_t j);
-    void updateParticles();
-
-    size_t IX(size_t _x, size_t _y)
-    {
-        return _x + _y * m_size;
-    }
-
-    void set_bnd(int _b, std::vector<float> *_x);
-
-    void lin_solve(int b, std::vector<float> *_x, std::vector<float> *_x0, float _a, float _c);
-
-    void diffuse(int _b, std::vector<float> *_x, std::vector<float> *_x0, float _diff, float _dt);
-
-    void advect(int _b, std::vector<float> *_d, std::vector<float> *_d0, std::vector<float> *_velocX, std::vector<float> *_velocY, float _dt);
-
-    void project(std::vector<float> *_velocX, std::vector<float> *_velocY, std::vector<float> *_p, std::vector<float> *_div);
+    Fluid() {}
 };
 
 #endif // !FLUID_H_

@@ -260,16 +260,6 @@ void Fluid::updateParticles()
             }
 
             m_dir[IX(i, j)] = velocity / 2.0f;
-            {
-            // m_dir[IX(i, j)] = ngl::Vec3{m_Vx[IX(i, j)], 0.0f, m_Vy[IX(i, j)]};
-
-            // if (m_dir[IX(i, j)].lengthSquared() != 0.0f)
-            // {
-            //     m_dir[IX(i, j)].normalize();
-            // }
-
-            // m_dir[IX(i, j)] /= 5.0f;
-            }
         }
     }
 }

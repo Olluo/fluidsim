@@ -6,67 +6,106 @@
 \usepackage{url}
 \graphicspath{{./img}}
 
-
+% base word count 27
 \title{%
 Fluid Simulation in C++ \\
 \large Simulation Assignment}
-\author{}
-\date{19/04/2021}
+% \author{}
+\date{21/04/2021}
 
 \begin{document}
 \maketitle
 
-\thispagestyle{empty}
+% \thispagestyle{empty}
 
-\begin{abstract}
-\noindent TODO
-\end{abstract}
+% \begin{abstract}
+% \noindent TODO
+% \end{abstract}
 
-\newpage
-\clearpage
-\setcounter{page}{1}
+% \newpage
+% \clearpage
+% \setcounter{page}{1}
 
 \section{Introduction}
 % 40 words
 
+When tasked with researching a simulation technique in computer graphics, my mind jumped straight to fluid simulations as they are visually appealing and have interesting-but-not-to-complex mathematics driving them.
+
+For this project I have implemented a grid-based fluid simulation using C++ and the NCCA Graphics Library (NGL) to render the simulation in OpenGL. 
+
+I briefly review the different technologies used, the implementation details of the program, and finally, critically analyse the approach.
+
 \section{Literature Review}
 % 150 words
-% \subsection{Jos Stam}
 
-\subsection{Moving Least Squares - Material Point Method}
+\subsection{Vector-Fields}
 
-% very fast and efficient
-% very new
-% difficult to implement and understand as no existing code to work from
+In fluid simulations, vector fields are often used to store the data of a fluid simulation providing a vector at each point in a 2D or 3D space that can be used to represent the velocity of the fluid at this particular point, \cite{galbis2012vector}.
 
-\subsection{Grid-Based Method}
+\subsection{Navier-Stokes \& The Grid-Based Method by Jos Stam}
 
-\subsubsection{Vector-Fields}
+Often seen as the pinnacle of fluid simulations, Stam's simple grid-based fluid simulation provides reliable, real-time fluid simulations for incompressible fluids, \cite{stam2003real}. This method works by making rough estimates to the Navier-Stokes (see \cite{temam2001navier}) equation, using Gauss-Seidel relaxation, and then applies this to a vector field of velocities. 
 
-% briefly what they are and how they are used in fluid sims
+This method is ``good enough'' for computer graphics where only the visual output needs to be realistic, and due to it running efficiently and being simple to program, makes it the perfect choice for this project.
 
-\subsubsection{Navier-Stokes \& Jos Stam}
+\subsection{Moving Least Squares - Material Point Method (MLS-MPM)}
 
-% jos stam/fluid sim for dummies
+Another method I explored was the MPM which offered blazing fast simulations and had many efficiencies over the Stam approach, due to it being a much newer algorithm, \cite{mlsmpm}.
+
+After some initial reading into this method I realised it was much more complex to implement, with no existing code examples to work from, and due to my project size being small, I felt this task too great to undertake, so opted to stick with the Stam approach.
 
 \section{Implementation}
 % 450 words
 
-% watched lots of videos to try to understand the topic as best as I could
-% read many articles on implementing different types of fluid simulation
-% settled on grid based like jos stam
-% used the code on fluid sim for dummies/the coding train then upgraded it to be more object oriented in c++
-% and to use the ngl library. full understanding of how the code/algorithm worked was needed to achieve this
-% reusing existing code is good programming practice as code should be written to be easily reused - no need to recreate the wheel
+When it came to implementing a solution, I first wanted to understand fluid simulations as best as I could so I could focus on the code rather than the mathematics. 
 
-% didnt want to do the same dye display as others and instead opted to use Jon's particle system to display.
-% this takes velocities at points in the grid and then uses that to drive the particles
+To do this, I watched a video by Inspecto (\cite{inspectoyt}) that explained clearly how fluid simulations worked, outlined each step of the main algorithm simply, and described why each part was needed and what would happen if they were removed. This was a great video that helped me understand all the other papers I read better.
+
+I also watched a video implementing Ash's (\cite{ash2005simulation}) adaptation of the Stam algorithm by Shiffman (\cite{shiffmanyt}) in Java which helped show some of the steps required to convert the C code into a more modern implementation.
+
+After getting to the stage of understanding fluid simulations better, I started implementing my own simulation. This was based on Stam's approach, and I referred to Ash's paper and his website ``Fluid Simulation for Dummies'' (\cite{ashdummies}) as inspiration and found the simple explanations most useful when implementing the code in C++.
+
+I wanted to make sure my approach was as object-oriented as possible and that it used C++ features (unlike Stam's \& Ash's C implementations). I also made sure to use the NGL package that I am familiar with, meaning I didn't need to write as much code. 
+
+To implement the simulation in this way, a full understanding of the Stam code was needed.
+
+Reusing code from NGL demos and my previous project meant it was quicker to get the program up and running, and there were a few efficiencies I could make on the original code, as well as modifications that made the code easier to understand; reusing code is good programming practice and helps keep the code simple and well laid-out -- there is no need to recreate the wheel!
+
+Both the implementations I worked from used dye to show the fluid movement, so to make sure my implementation wasn't a carbon-copy of these, I opted to use methods from NGL's grid-based particle visualisations instead. 
+
+In this implementation, each particle would start at a set point in the fluid's vector field. To move, the particle would take an average of the four closest velocities and use this to alter its position. The algorithm went like this:
+
+\begin{enumerate}
+    \item A velocity is added to the grid from user input
+    \item For each time step
+    \begin{enumerate}
+        \item The Stam algorithm is used to calculate the velocity for each point in the vector field
+        \item For each particle
+        \begin{enumerate}
+            \item Particle gets current position
+            \item Uses position to get closest velocities
+            \item Averages velocities and scales the velocity into new velocity
+            \item Updates position based on the new velocity
+        \end{enumerate}
+        \item The particles are drawn to screen using the geometry shader
+    \end{enumerate}
+\end{enumerate}
+
+
+Using the NGL particle system meant no additional libraries were required to visualise the fluid. This meant the implementation time could be focussed on understanding the fluid mathematics and code.
 
 \section{Critical Analysis}
 % 200 words
 
-\section{Conclusion}
-% 40 words
+This method of fluid simulation has been widely used across computer graphics. This is mainly due to its simplicity and effectiveness, and the fact that it provides a result that looks good even if not entirely realistic.
+
+The solver can easily be extended to 3D, and by modifying the ``set\_bnd'' function, internal boundaries could be added and removed whilst the program ran. This means the solver can be applied to video games easily.
+
+Whilst the algorithm runs solely on the CPU, the program could be easily implemented on the GPU using the compute shader which would improved the speed of the simulation drastically, further increasing the usability in real-time computer graphics.
+
+The Gauss-Seidel relaxation provides ``good enough'' results but could easily be replaced by a better partial differential equation solver.
+
+Overall, the Stam algorithm provides a good basis for fluid simulations, and can be extended to improve its efficiency, effectiveness, and use-cases, which is why it is widely used in computer graphics 20 years later.
 
 \clearpage
 \bibliographystyle{agsm}

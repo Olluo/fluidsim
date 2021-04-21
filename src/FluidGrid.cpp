@@ -1,3 +1,10 @@
+/**
+ * @file FluidGrid.cpp
+ * @brief This class uses the Fluid solver and the NGL particle system to display a fluid to a screen
+ * 
+ * @copyright Copyright (c) 2021
+ */
+
 #include "FluidGrid.h"
 
 #include <ngl/MultiBufferVAO.h>
@@ -65,9 +72,9 @@ void FluidGrid::step()
 
 void FluidGrid::addVelocity(ngl::Vec2 _pos, ngl::Vec2 _v)
 {
-    _pos.m_x = std::clamp(_pos.m_x, 0.0f, static_cast<ngl::Real>(c_size - 1));
-    _pos.m_y = std::clamp(_pos.m_y, 0.0f, static_cast<ngl::Real>(c_size - 1));
-    size_t index = Fluid::IX(static_cast<size_t>(_pos.m_x), static_cast<size_t>(_pos.m_y));
+    // clamp x and y so inside the grid
+    size_t index = Fluid::IX(std::clamp(static_cast<size_t>(_pos.m_x), static_cast<size_t>(0), c_size - 1),
+                             std::clamp(static_cast<size_t>(_pos.m_y), static_cast<size_t>(0), c_size - 1));
 
     m_Vx[index] += _v.m_x;
     m_Vy[index] += _v.m_y;
@@ -78,6 +85,7 @@ void FluidGrid::resetVelocities()
     std::fill(m_Vx.begin(), m_Vx.end(), 0.0f);
     std::fill(m_Vy.begin(), m_Vy.end(), 0.0f);
 
+    // add a small initial velocity to show something on the grid
     addVelocity(ngl::Vec2{c_size / 2.0f, c_size / 2.0f}, ngl::Vec2{-.0001f, 0.0f});
 }
 
@@ -96,10 +104,11 @@ void FluidGrid::updateParticles()
             int x1 = static_cast<int>(ceil(static_cast<float>(pos.m_x)));
             int y1 = static_cast<int>(ceil(static_cast<float>(pos.m_z)));
 
+            // Get average velocity of 4 adjacent points
             auto xVel = 0.25f * (m_Vx[Fluid::IX(x0, y0)] + m_Vx[Fluid::IX(x1, y0)] + m_Vx[Fluid::IX(x0, y1)] + m_Vx[Fluid::IX(x1, y1)]);
             auto yVel = 0.25f * (m_Vy[Fluid::IX(x0, y0)] + m_Vy[Fluid::IX(x1, y0)] + m_Vy[Fluid::IX(x0, y1)] + m_Vy[Fluid::IX(x1, y1)]);
 
-            ngl::Vec3 velocity = ngl::Vec3{xVel, 0.0f, yVel};
+            ngl::Vec3 velocity{xVel, 0.0f, yVel};
 
             pos += velocity * 0.2f;
 
@@ -167,12 +176,12 @@ void FluidGrid::draw() const
 
 void FluidGrid::diffuseX()
 {
-    Fluid::diffuse(1, &m_Vx0, &m_Vx, m_visc, m_dt);
+    Fluid::diffuse(Fluid::Boundary::X, &m_Vx0, &m_Vx, m_visc, m_dt);
 }
 
 void FluidGrid::diffuseY()
 {
-    Fluid::diffuse(2, &m_Vy0, &m_Vy, m_visc, m_dt);
+    Fluid::diffuse(Fluid::Boundary::Y, &m_Vy0, &m_Vy, m_visc, m_dt);
 }
 
 void FluidGrid::projectForwards()
@@ -182,12 +191,12 @@ void FluidGrid::projectForwards()
 
 void FluidGrid::advectX()
 {
-    Fluid::advect(1, &m_Vx, &m_Vx0, &m_Vx0, &m_Vy0, m_dt);
+    Fluid::advect(Fluid::Boundary::X, &m_Vx, &m_Vx0, &m_Vx0, &m_Vy0, m_dt);
 }
 
 void FluidGrid::advectY()
 {
-    Fluid::advect(2, &m_Vy, &m_Vy0, &m_Vx0, &m_Vy0, m_dt);
+    Fluid::advect(Fluid::Boundary::Y, &m_Vy, &m_Vy0, &m_Vx0, &m_Vy0, m_dt);
 }
 
 void FluidGrid::projectBackwards()

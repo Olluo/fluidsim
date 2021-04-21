@@ -89,13 +89,11 @@ void NGLScene::paintGL()
   auto drawbegin = std::chrono::steady_clock::now();
   m_fluidGrid->draw();
   auto drawend = std::chrono::steady_clock::now();
-
-  std::string text = fmt::format("Draw took {0} uS", std::chrono::duration_cast<std::chrono::microseconds>(drawend - drawbegin).count());
-  m_text->renderText(10, 30, text);
-
   auto updateTime = std::accumulate(std::begin(m_updateTime), std::end(m_updateTime), 0) / m_updateTime.size();
-  text = fmt::format("Update took {0} uS for {1} particles", updateTime, m_fluidGrid->getNumParticles());
-  m_text->renderText(10, 10, text);
+
+  m_text->renderText(10, 50, "[Spacebar] to reset");
+  m_text->renderText(10, 30, fmt::format("- Draw took {0} uS", std::chrono::duration_cast<std::chrono::microseconds>(drawend - drawbegin).count()));
+  m_text->renderText(10, 10, fmt::format("- Update took {0} uS for {1} particles", updateTime, m_fluidGrid->getNumParticles()));
 }
 
 //----------------------------------------------------------------------------------------------------------------------

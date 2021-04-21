@@ -1,16 +1,24 @@
+/**
+ * @file Fluid.cpp
+ * @brief This class implements the methods from https://www.dgp.toronto.edu/public_user/stam/reality/Research/pdf/GDC03.pdf.
+ * They are slightly modified versions of the originals, trying to use C++ syntax instead of C
+ * 
+ * @copyright Copyright (c) 2021
+ */
+
 #include "Fluid.h"
 
-void Fluid::set_bnd(int _b, std::vector<float> *_x)
+void Fluid::set_boundary(Boundary _b, std::vector<float> *_x)
 {
     for (int i = 1; i < c_size - 1; i++)
     {
-        _x->at(IX(i, 0)) = _b == 2 ? -_x->at(IX(i, 1)) : _x->at(IX(i, 1));
-        _x->at(IX(i, c_size - 1)) = _b == 2 ? -_x->at(IX(i, c_size - 2)) : _x->at(IX(i, c_size - 2));
+        _x->at(IX(i, 0)) = _b == Boundary::Y ? -_x->at(IX(i, 1)) : _x->at(IX(i, 1));
+        _x->at(IX(i, c_size - 1)) = _b == Boundary::Y ? -_x->at(IX(i, c_size - 2)) : _x->at(IX(i, c_size - 2));
     }
     for (int j = 1; j < c_size - 1; j++)
     {
-        _x->at(IX(0, j)) = _b == 1 ? -_x->at(IX(1, j)) : _x->at(IX(1, j));
-        _x->at(IX(c_size - 1, j)) = _b == 1 ? -_x->at(IX(c_size - 2, j)) : _x->at(IX(c_size - 2, j));
+        _x->at(IX(0, j)) = _b == Boundary::X ? -_x->at(IX(1, j)) : _x->at(IX(1, j));
+        _x->at(IX(c_size - 1, j)) = _b == Boundary::X ? -_x->at(IX(c_size - 2, j)) : _x->at(IX(c_size - 2, j));
     }
 
     _x->at(IX(0, 0)) = 0.5f * (_x->at(IX(1, 0)) + _x->at(IX(0, 1)));
@@ -19,7 +27,7 @@ void Fluid::set_bnd(int _b, std::vector<float> *_x)
     _x->at(IX(c_size - 1, c_size - 1)) = 0.5f * (_x->at(IX(c_size - 2, c_size - 1)) + _x->at(IX(c_size - 1, c_size - 2)));
 }
 
-void Fluid::lin_solve(int _b, std::vector<float> *_x, std::vector<float> *_x0, float _a, float _c)
+void Fluid::linear_solve(Boundary _b, std::vector<float> *_x, std::vector<float> *_x0, float _a, float _c)
 {
     float cRecip = 1.0f / _c;
     for (int k = 0; k < c_iter; k++)
@@ -33,17 +41,17 @@ void Fluid::lin_solve(int _b, std::vector<float> *_x, std::vector<float> *_x0, f
             }
         }
 
-        set_bnd(_b, _x);
+        set_boundary(_b, _x);
     }
 }
 
-void Fluid::diffuse(int _b, std::vector<float> *_x, std::vector<float> *_x0, float _diff, float _dt)
+void Fluid::diffuse(Boundary _b, std::vector<float> *_x, std::vector<float> *_x0, float _diff, float _dt)
 {
     float a = _dt * _diff * (c_size - 2) * (c_size - 2);
-    lin_solve(_b, _x, _x0, a, 1 + 4 * a);
+    linear_solve(_b, _x, _x0, a, 1 + 4 * a);
 }
 
-void Fluid::advect(int _b, std::vector<float> *_d, std::vector<float> *_d0, std::vector<float> *_velocX, std::vector<float> *_velocY, float _dt)
+void Fluid::advect(Boundary _b, std::vector<float> *_d, std::vector<float> *_d0, std::vector<float> *_velocX, std::vector<float> *_velocY, float _dt)
 {
     float i0, i1, j0, j1;
 
@@ -95,7 +103,7 @@ void Fluid::advect(int _b, std::vector<float> *_d, std::vector<float> *_d0, std:
         }
     }
 
-    set_bnd(_b, _d);
+    set_boundary(_b, _d);
 }
 
 void Fluid::project(std::vector<float> *_velocX, std::vector<float> *_velocY, std::vector<float> *_p, std::vector<float> *_div)
@@ -110,9 +118,9 @@ void Fluid::project(std::vector<float> *_velocX, std::vector<float> *_velocY, st
         }
     }
 
-    set_bnd(0, _div);
-    set_bnd(0, _p);
-    lin_solve(0, _p, _div, 1, 6);
+    set_boundary(Boundary::None, _div);
+    set_boundary(Boundary::None, _p);
+    linear_solve(Boundary::None, _p, _div, 1, 6);
 
     for (int j = 1; j < c_size - 1; j++)
     {
@@ -122,6 +130,6 @@ void Fluid::project(std::vector<float> *_velocX, std::vector<float> *_velocY, st
             _velocY->at(IX(i, j)) -= 0.5f * (_p->at(IX(i, j + 1)) - _p->at(IX(i, j - 1))) * c_size;
         }
     }
-    set_bnd(1, _velocX);
-    set_bnd(2, _velocY);
+    set_boundary(Boundary::X, _velocX);
+    set_boundary(Boundary::Y, _velocY);
 }

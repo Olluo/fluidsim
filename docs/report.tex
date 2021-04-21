@@ -46,7 +46,7 @@ In fluid simulations, vector fields are often used to store the data of a fluid 
 
 Often seen as the pinnacle of fluid simulations, Stam's simple grid-based fluid simulation provides reliable, real-time fluid simulations for incompressible fluids, \cite{stam2003real}. This method works by making rough estimates to the Navier-Stokes (see \cite{temam2001navier}) equation, using Gauss-Seidel relaxation, and then applies this to a vector field of velocities. 
 
-This method is ``good enough'' for computer graphics where only the visual output needs to be realistic, and due to it running efficiently and being simple to program, makes it the perfect choice for this project.
+This method is ``good enough'' for computer graphics where only the visual output needs to be realistic, and due to it running efficiently and being simple to program, it is the perfect choice for this project.
 
 \subsection{Moving Least Squares - Material Point Method (MLS-MPM)}
 
@@ -97,7 +97,7 @@ Using the NGL particle system meant no additional libraries were required to vis
 \section{Critical Analysis}
 % 200 words
 
-This method of fluid simulation has been widely used across computer graphics. This is mainly due to its simplicity and effectiveness, and the fact that it provides a result that looks good even if not entirely realistic.
+This method of fluid simulation has been widely used across computer graphics. This is mainly due to its simplicity and effectiveness, and the fact that it provides a result that looks - good even if not entirely realistic.
 
 The solver can easily be extended to 3D, and by modifying the ``set\_bnd'' function, internal boundaries could be added and removed whilst the program ran. This means the solver can be applied to video games easily.
 
@@ -105,7 +105,7 @@ Whilst the algorithm runs solely on the CPU, the program could be easily impleme
 
 The Gauss-Seidel relaxation provides ``good enough'' results but could easily be replaced by a better partial differential equation solver.
 
-Overall, the Stam algorithm provides a good basis for fluid simulations, and can be extended to improve its efficiency, effectiveness, and use-cases, which is why it is widely used in computer graphics 20 years later.
+Overall, the Stam algorithm provides a good basis for fluid simulations, and can be extended to improve its efficiency, effectiveness, and use-cases, which is why it is still widely used in computer graphics 20 years later.
 
 \clearpage
 \bibliographystyle{agsm}
